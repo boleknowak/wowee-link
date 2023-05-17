@@ -7,8 +7,16 @@ type Data = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
-  const response = await fetch(`${process.env.API_URL}/`);
-  const data = response.json();
+  const response = await fetch(`${process.env.API_URL}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const text = await response.text();
+  const data = JSON.parse(text);
 
   res.status(200).json({ name: 'John Doe', url: process.env.API_URL || '', data });
 }

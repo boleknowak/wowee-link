@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:build": "docker build -t boleknowak/wowee-link .",
+    "docker:push": "docker push boleknowak/wowee-link"
   },
   "dependencies": {
     "@types/node": "20.1.7",
