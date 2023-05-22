@@ -1,3 +1,4 @@
+import Logo from '@/components/Logo';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
@@ -12,6 +13,7 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | null, pastedUrl: string | null = null) => {
     const parsedUrl = pastedUrl || url;
+    // TODO: check if URL is valid and if it's not a short URL
 
     if (e !== null && typeof e !== 'undefined') {
       e.preventDefault();
@@ -84,7 +86,7 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 text-white">
       <div className="w-full max-w-lg text-center">
-        <h1 className="text-2xl font-bold mb-12">wowee.link</h1>
+        <Logo className="mb-12" />
         <div className="relative">
           <Image src="/blob.svg" alt="Blob" width={600} height={480} className="mx-auto" />
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
