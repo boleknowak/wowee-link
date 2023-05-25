@@ -3,13 +3,22 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
 
 html {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Source Code Pro', monospace;
 }
 
 body {
   background: #0f2027;
   background: -webkit-linear-gradient(135deg, #2c5364, #203a43, #0f2027);
   background: linear-gradient(135deg, #2c5364, #203a43, #0f2027);
+}
+
+.font-poppins {
+  font-family: 'Poppins', sans-serif;
+}
+
+.background-border {
+  box-shadow: 8px 8px 0px #2c5364;
 }

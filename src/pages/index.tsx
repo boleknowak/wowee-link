@@ -1,6 +1,10 @@
 import Logo from '@/components/Logo';
-import Image from 'next/image';
+import Head from 'next/head';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { BiCopy } from 'react-icons/bi';
+import { IoStatsChart } from 'react-icons/io5';
+import { AiOutlinePlusCircle } from 'react-icons/ai';
 
 export default function Home() {
   const urlRef = useRef<HTMLInputElement>(null);
@@ -10,6 +14,9 @@ export default function Home() {
   const [isPasted, setIsPasted] = useState<boolean>(false);
   const [isShortened, setIsShortened] = useState<boolean>(false);
   const [shortenedUrl, setShortenedUrl] = useState<string>('');
+  const [shortenedCode, setShortenedCode] = useState<string>('');
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [currentLogo, setCurrentLogo] = useState<string>('default');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | null, pastedUrl: string | null = null) => {
     const parsedUrl = pastedUrl || url;
@@ -21,6 +28,7 @@ export default function Home() {
 
     if (!parsedUrl) {
       setError('Please enter a URL');
+      setCurrentLogo('error');
       return;
     }
 
@@ -29,6 +37,7 @@ export default function Home() {
     }
 
     setIsLoading(true);
+    setCurrentLogo('loading');
 
     const res = await fetch('/api/shorten', {
       method: 'POST',
@@ -41,6 +50,7 @@ export default function Home() {
     if (!res.ok) {
       setError('Something went wrong');
       setIsLoading(false);
+      setCurrentLogo('error');
       return;
     }
 
@@ -49,6 +59,7 @@ export default function Home() {
     if (data.data.error) {
       setError(data.data.error);
       setIsLoading(false);
+      setCurrentLogo('error');
       return;
     }
 
@@ -58,9 +69,12 @@ export default function Home() {
       navigator.clipboard.writeText(fullUrl);
       setIsShortened(true);
       setShortenedUrl(fullUrl);
+      setShortenedCode(data.data.short_url);
+      setElapsedTime(data.data.elapsed_time);
     }
 
     setIsLoading(false);
+    setCurrentLogo('default');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,35 +93,77 @@ export default function Home() {
     handleSubmit(null, e.clipboardData.getData('text'));
   };
 
+  const copyUrl = () => {
+    navigator.clipboard.writeText(shortenedUrl);
+  };
+
+  const resetPage = () => {
+    setUrl('');
+    setError('');
+    setIsPasted(false);
+    setIsShortened(false);
+    setShortenedUrl('');
+    setShortenedCode('');
+    setElapsedTime(0);
+    setCurrentLogo('default');
+  };
+
   useEffect(() => {
     urlRef.current?.focus();
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 text-white">
-      <div className="w-full max-w-lg text-center">
-        <Logo className="mb-12" />
-        <div className="relative">
-          <Image src="/blob.svg" alt="Blob" width={600} height={480} className="mx-auto" />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+    <>
+      <Head>
+        <title>wowee.link</title>
+        <meta name="description" content="A simple URL shortener" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <main className="flex min-h-screen flex-col items-center justify-center p-6 text-white">
+        <div className="w-full max-w-lg">
+          <Logo className="mb-12" logo={currentLogo} onClick={() => resetPage()} />
+          <div className="bg-white px-4 py-5 text-black background-border">
             {!isShortened && (
               <div>
-                <div className="text-black mb-4 font-bold text-xl">Just paste the URL</div>
+                <div className="text-black mb-2 font-bold text-lg">Just paste the URL</div>
                 <form onSubmit={handleSubmit}>
-                  <input type="text" name="url" id="url" ref={urlRef} onChange={(e) => handleChange(e)} onPaste={(e) => handlePaste(e)} value={url} autoFocus className="w-72 md:w-96 mx-auto bg-white text-black focus:outline-none focus:ring focus:ring-[#2C5364] border-4 border-[#2C5364] rounded-full py-2 px-4" placeholder="Enter a URL and hit enter" />
+                  <div className="flex flex-grow flex-row items-center space-x-2">
+                    <input type="text" name="url" id="url" ref={urlRef} onChange={(e) => handleChange(e)} onPaste={(e) => handlePaste(e)} value={url} autoFocus className="w-72 md:w-96 mx-auto bg-white text-black focus:outline-none font-poppins tracking-wide border-4 border-[#2C5364] bg-[#E7E7E7] py-2 px-4" placeholder="https://" />
+                    <button type="submit" className="bg-[#ECB580] px-6 h-12 border-4 border-[#2C5364] font-bold text-sm">
+                      shrink
+                    </button>
+                  </div>
                 </form>
-                <div className="font-bold text-red-600 mt-2 text-sm h-5">{error}</div>
+                <div className="font-bold text-red-600 mt-2 text-xs h-5 font-poppins">{error}</div>
               </div>
             )}
             {isShortened && (
               <div>
-                <div className="text-black mb-4 font-bold text-xl">Copied to clipboard! 🎉</div>
-                <div className="text-black mb-4 font-bold">{shortenedUrl}</div>
+                <div className="mb-10">
+                  <div className="text-black font-bold text-lg">Yay! URL copied to clipboard. 🎉</div>
+                  <div className="text-black font-bold text-sm">It took {elapsedTime} ms.</div>
+                </div>
+                <div>
+                  <div className="flex flex-row items-center space-x-3">
+                    <div className="text-black font-bold text-sm">{shortenedUrl}</div>
+                    <div className="flex flex-row items-center space-x-1">
+                      <button className="hover:bg-gray-200 rounded-full h-6 w-6" title="Copy" onClick={() => copyUrl()}>
+                        <BiCopy className="mx-auto" />
+                      </button>
+                      <Link href={`/stats/${shortenedCode}`} className="block flex items-center hover:bg-gray-200 rounded-full h-6 w-6" title="Statistics">
+                        <IoStatsChart className="mx-auto" />
+                      </Link>
+                      <button className="hover:bg-gray-200 rounded-full h-6 w-6" title="Short one more" onClick={() => resetPage()}>
+                        <AiOutlinePlusCircle className="mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
