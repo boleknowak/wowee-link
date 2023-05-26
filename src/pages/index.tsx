@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BiCopy } from 'react-icons/bi';
 import { IoStatsChart } from 'react-icons/io5';
 import { AiOutlinePlusCircle } from 'react-icons/ai';
+import { z } from 'zod';
 
 export default function Home() {
   const urlRef = useRef<HTMLInputElement>(null);
@@ -17,64 +18,84 @@ export default function Home() {
   const [shortenedCode, setShortenedCode] = useState<string>('');
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [currentLogo, setCurrentLogo] = useState<string>('default');
+  const urlSchema = z.string().url().min(1).max(2048);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | null, pastedUrl: string | null = null) => {
-    const parsedUrl = pastedUrl || url;
-    // TODO: check if URL is valid and if it's not a short URL
+    setError('');
+    let parsedUrl = pastedUrl || url;
 
-    if (e !== null && typeof e !== 'undefined') {
-      e.preventDefault();
-    }
+    try {
+      parsedUrl = urlSchema.parse(parsedUrl);
 
-    if (!parsedUrl) {
-      setError('Please enter a URL');
-      setCurrentLogo('error');
-      return;
-    }
+      if (e !== null && typeof e !== 'undefined') {
+        e.preventDefault();
+      }
 
-    if (isLoading) {
-      return;
-    }
+      if (!parsedUrl) {
+        setError('Please enter a URL');
+        setCurrentLogo('error');
+        return;
+      }
 
-    setIsLoading(true);
-    setCurrentLogo('loading');
+      if (parsedUrl.startsWith('https://wowee.link')) {
+        setError('Please enter a URL that is not a wowee.link URL');
+        setCurrentLogo('error');
+        return;
+      }
 
-    const res = await fetch('/api/shorten', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url: parsedUrl }),
-    });
+      if (parsedUrl.startsWith('http://localhost')) {
+        setError('Please enter a URL that is not a localhost URL');
+        setCurrentLogo('error');
+        return;
+      }
 
-    if (!res.ok) {
-      setError('Something went wrong');
+      if (isLoading) {
+        return;
+      }
+
+      setIsLoading(true);
+      setCurrentLogo('loading');
+
+      const res = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: parsedUrl }),
+      });
+
+      if (!res.ok) {
+        setError('Something went wrong');
+        setIsLoading(false);
+        setCurrentLogo('error');
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.data.error) {
+        setError(data.data.error);
+        setIsLoading(false);
+        setCurrentLogo('error');
+        return;
+      }
+
+      if (data.data.short_url) {
+        const fullUrl = `${window.location.protocol}//${window.location.host}/${data.data.short_url}`;
+        urlRef.current?.select();
+        navigator.clipboard.writeText(fullUrl);
+        setIsShortened(true);
+        setShortenedUrl(fullUrl);
+        setShortenedCode(data.data.short_url);
+        setElapsedTime(data.data.elapsed_time);
+      }
+
       setIsLoading(false);
+      setCurrentLogo('default');
+    } catch (error) {
+      setError('Please enter a valid URL');
       setCurrentLogo('error');
-      return;
     }
-
-    const data = await res.json();
-
-    if (data.data.error) {
-      setError(data.data.error);
-      setIsLoading(false);
-      setCurrentLogo('error');
-      return;
-    }
-
-    if (data.data.short_url) {
-      const fullUrl = `${window.location.protocol}//${window.location.host}/${data.data.short_url}`;
-      urlRef.current?.select();
-      navigator.clipboard.writeText(fullUrl);
-      setIsShortened(true);
-      setShortenedUrl(fullUrl);
-      setShortenedCode(data.data.short_url);
-      setElapsedTime(data.data.elapsed_time);
-    }
-
-    setIsLoading(false);
-    setCurrentLogo('default');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,14 +103,12 @@ export default function Home() {
       setUrl(e.target.value);
     }
 
-    setError('');
     setIsPasted(false);
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     setIsPasted(true);
     setUrl(e.clipboardData.getData('text'));
-    setError('');
     handleSubmit(null, e.clipboardData.getData('text'));
   };
 
@@ -128,7 +147,7 @@ export default function Home() {
                 <div className="text-black mb-2 font-bold text-lg">Just paste the URL</div>
                 <form onSubmit={handleSubmit}>
                   <div className="flex flex-grow flex-row items-center space-x-2">
-                    <input type="text" name="url" id="url" ref={urlRef} onChange={(e) => handleChange(e)} onPaste={(e) => handlePaste(e)} value={url} autoFocus className="w-72 md:w-96 mx-auto bg-white text-black focus:outline-none font-poppins tracking-wide border-4 border-[#2C5364] bg-[#E7E7E7] py-2 px-4" placeholder="https://" />
+                    <input type="url" name="url" id="url" ref={urlRef} onChange={(e) => handleChange(e)} onPaste={(e) => handlePaste(e)} value={url} autoFocus className="w-72 md:w-96 mx-auto bg-white text-black focus:outline-none font-poppins tracking-wide border-4 border-[#2C5364] bg-[#E7E7E7] py-2 px-4" placeholder="https://" />
                     <button type="submit" className="bg-[#ECB580] px-6 h-12 border-4 border-[#2C5364] font-bold text-sm">
                       shrink
                     </button>
